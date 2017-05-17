@@ -6,11 +6,18 @@ namespace JsonParser
 	{
 		public static void Main (string [] args)
 		{
-			string input = Console.ReadLine ().TrimEnd ('\n');
-			JsonPath path = JsonPath.Parse (input);
+			while (true) {
+				string input = Console.ReadLine ().TrimEnd ('\n');
 
-			foreach (var token in path) {
-				Console.WriteLine (token);
+				try {
+					JsonPath path = JsonPath.Parse (input);
+
+					foreach (var token in path) {
+						Console.WriteLine (token);
+					}
+				} catch (ArgumentException e) {
+					Console.WriteLine (e.Message);
+				}
 			}
 		}
 	}

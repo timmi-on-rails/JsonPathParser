@@ -85,15 +85,9 @@ namespace JsonParser
 
 		public int Count { get { return tokens.Count; } }
 
-		public IEnumerator<JsonPathToken> GetEnumerator ()
-		{
-			return tokens.GetEnumerator ();
-		}
+		public IEnumerator<JsonPathToken> GetEnumerator () => tokens.GetEnumerator ();
 
-		IEnumerator IEnumerable.GetEnumerator ()
-		{
-			return GetEnumerator ();
-		}
+		IEnumerator IEnumerable.GetEnumerator () => GetEnumerator ();
 	}
 
 	class JsonPathParser
@@ -103,32 +97,18 @@ namespace JsonParser
 
 		int Peek () => textReader.Peek ();
 
+		void Skip () => textReader.Read ();
+
+		void Consume () => buffer.Append (Convert.ToChar (textReader.Read ()));
+
+		bool IsDigit () => '0' <= Peek () && Peek () <= '9';
+
+		bool IsLetter () => 'a' <= Peek () && Peek () <= 'z';
+
 		public JsonPathParser (TextReader textReader)
 		{
 			this.textReader = textReader;
 			buffer = new StringBuilder ();
-		}
-
-		bool IsDigit ()
-		{
-			int next = Peek ();
-			return '0' <= next && next <= '9';
-		}
-
-		bool IsLetter ()
-		{
-			int next = Peek ();
-			return 'a' <= next && next <= 'z';
-		}
-
-		void Skip ()
-		{
-			textReader.Read ();
-		}
-
-		void Consume ()
-		{
-			buffer.Append ((char)textReader.Read ());
 		}
 
 		public IEnumerable<JsonPathToken> Scan ()
@@ -140,7 +120,7 @@ namespace JsonParser
 					Skip ();
 					yield return ScanToken ();
 				} else {
-					throw new ArgumentException ("unexpected char " + Peek ());
+					throw new ArgumentException ("Expected '.', skipping \"" + textReader.ReadToEnd () + "\"");
 				}
 			}
 		}
@@ -148,30 +128,18 @@ namespace JsonParser
 		JsonPathToken ScanToken ()
 		{
 			if (IsDigit ()) {
-				return ScanElementIndexToken ();
+				while (IsDigit ()) {
+					Consume ();
+				}
+				return new JsonPathToken (Convert.ToInt32 (CreateToken ()));
 			} else if (IsLetter ()) {
-				return ScanMemberNameToken ();
+				while (IsLetter ()) {
+					Consume ();
+				}
+				return new JsonPathToken (CreateToken ());
 			} else {
-				throw new ArgumentException ("expecting member name or element index, but not: " + (char)Peek ());
+				throw new ArgumentException ("Expected digit or letter, skipping: \"" + textReader.ReadToEnd () + "\"");
 			}
-		}
-
-		JsonPathToken ScanElementIndexToken ()
-		{
-			while (IsDigit ()) {
-				Consume ();
-			}
-
-			return new JsonPathToken (Convert.ToInt32 (CreateToken ()));
-		}
-
-		JsonPathToken ScanMemberNameToken ()
-		{
-			while (IsLetter ()) {
-				Consume ();
-			}
-
-			return new JsonPathToken (CreateToken ());
 		}
 
 		string CreateToken ()
